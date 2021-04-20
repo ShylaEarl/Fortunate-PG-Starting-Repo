@@ -1,5 +1,26 @@
 const express = require('express');
 const router = express.Router();
+const { Pool } = require('pg');
+
+const pg = require('pg');
+//const Pool = pg.Pool;
+
+//add all pool code here -- in notes
+const pool = new Pool({
+    database: 'fortunate_music_library',
+    host: 'localhost',
+    port: '5432',
+    max: 10,
+    idleTimeoutMillis: 30000
+});
+
+pool.on('connect', () => {
+    console.log('Postgresql connected'); 
+});
+
+pool.on('error', (error) => {
+    console.log('Error w postgres pool', error );
+});
 
 let musicLibrary = [
     {
@@ -23,7 +44,16 @@ let musicLibrary = [
 ];
 
 router.get('/', (req, res) => {
-    res.send(musicLibrary);
+    //res.send(musicLibrary);
+    let queryText = 'SELECT * FROM songs;';
+    pool.query(queryText)
+        .then(dbResult => {
+            res.send(dbResult.rows);
+        })
+        .catch((error) => {
+            console.log(`Error! It broke trying to query ${queryText}`, error);
+            res.sendStatus(500); //500 is a generic server error
+        });
 });
 
 router.post('/', (req, res) => {
